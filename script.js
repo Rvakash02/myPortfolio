@@ -127,5 +127,86 @@ document.addEventListener('DOMContentLoaded', () => {
     revealObserver.observe(item);
   });
 
+  // ══ CONTACT FORM HANDLING ══
+  const contactForm = document.getElementById('contact-form');
+  const formStatus = document.getElementById('form-status');
+  const btnSubmit = contactForm ? contactForm.querySelector('.btn-submit') : null;
+  const btnText = contactForm ? contactForm.querySelector('.btn-text') : null;
+  const btnLoader = contactForm ? contactForm.querySelector('.btn-loader') : null;
+  const btnIcon = contactForm ? contactForm.querySelector('.btn-icon') : null;
+
+  if (contactForm) {
+    contactForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const accessKey = contactForm.querySelector('input[name="access_key"]').value;
+      if (accessKey === 'YOUR_ACCESS_KEY_HERE') {
+        showStatus('Please configure your Web3Forms Access Key in index.html first.', 'error');
+        return;
+      }
+
+      setLoading(true);
+      showStatus('', '');
+
+      const formData = new FormData(contactForm);
+      // Remove botcheck from JSON submission
+      formData.delete('botcheck');
+      const object = Object.fromEntries(formData);
+      const json = JSON.stringify(object);
+
+      try {
+        const response = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: json
+        });
+
+        const result = await response.json();
+
+        if (response.status === 200 || result.success) {
+          showStatus('Thank you! Your message has been sent successfully.', 'success');
+          contactForm.reset();
+        } else {
+          showStatus(result.message || 'Something went wrong. Please try again.', 'error');
+        }
+      } catch (error) {
+        console.error(error);
+        showStatus('Network error. Please check your connection and try again.', 'error');
+      } finally {
+        setLoading(false);
+      }
+    });
+  }
+
+  function setLoading(isLoading) {
+    if (!btnSubmit) return;
+    if (isLoading) {
+      btnSubmit.disabled = true;
+      if (btnText) btnText.style.display = 'none';
+      if (btnIcon) btnIcon.style.display = 'none';
+      if (btnLoader) btnLoader.style.display = 'inline-flex';
+    } else {
+      btnSubmit.disabled = false;
+      if (btnText) btnText.style.display = 'inline';
+      if (btnIcon) btnIcon.style.display = 'inline';
+      if (btnLoader) btnLoader.style.display = 'none';
+    }
+  }
+
+  function showStatus(message, type) {
+    if (!formStatus) return;
+    formStatus.textContent = message;
+    formStatus.className = 'form-status'; // Reset classes
+    if (type) {
+      formStatus.classList.add(type);
+      formStatus.style.display = 'block';
+    } else {
+      formStatus.style.display = 'none';
+    }
+  }
+
   window.addEventListener('scroll', handleScroll);
 });
